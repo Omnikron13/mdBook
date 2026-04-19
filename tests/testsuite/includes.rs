@@ -111,3 +111,60 @@ fn rustdoc_include() {
 }</code></pre>
 "##]]);
 }
+
+// Tests `{{#include}}`s that are indented (e.g. `    {{#include}}`)
+#[test]
+fn indented_include() {
+    BookTest::from_dir("includes/all_includes")
+        .check_main_file(
+            "book/indented.html",
+            str![[r##"
+<h1 id="indented-includes"><a class="header" href="#indented-includes">Indented Includes</a></h1>
+<ul>
+<li>
+<p>No include:</p>
+<h2 id="sample"><a class="header" href="#sample">Sample</a></h2>
+<p>This is not an include.</p>
+</li>
+<li>
+<p>Basic include:</p>
+<h2 id="sample-1"><a class="header" href="#sample-1">Sample</a></h2>
+<p>This is a sample include.</p>
+</li>
+<li>
+<p>No include:</p>
+<pre class="playground"><code class="language-rust">fn main() {
+    some_function();
+}</code></pre>
+</li>
+<li>
+<p>Partial include:</p>
+<pre class="playground"><code class="language-rust">fn main() {
+    some_function();
+}</code></pre>
+</li>
+<li>
+<p>No include:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">fn some_function() {
+</span><span class="boring">    println!("some function");
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn main() {
+    some_function();
+}</code></pre>
+</li>
+<li>
+<p>Rustdoc include:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">fn some_function() {
+</span><span class="boring">    println!("some function");
+</span><span class="boring">}
+</span><span class="boring">
+</span>fn main() {
+    some_function();
+}</code></pre>
+</li>
+</ul>
+"##]],
+        )
+    ;
+}
