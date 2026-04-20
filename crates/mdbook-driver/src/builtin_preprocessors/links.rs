@@ -98,25 +98,27 @@ where
 
         match link.render_with_path(path, chapter_title) {
             Ok(new_content) => {
-                if depth < MAX_LINK_NESTED_DEPTH {
-                    if let Some(rel_path) = link.link_type.relative_path(path) {
-                        replaced.push_str(&replace_all(
-                            &new_content,
-                            rel_path,
-                            source,
-                            depth + 1,
-                            chapter_title,
-                        ));
-                    } else {
-                        replaced.push_str(&new_content);
-                    }
-                } else {
+                previous_end_index = link.end_index;
+
+                if depth >= MAX_LINK_NESTED_DEPTH {
                     error!(
                         "Stack depth exceeded in {}. Check for cyclic includes",
                         source.display()
                     );
+                    continue;
                 }
-                previous_end_index = link.end_index;
+
+                if let Some(rel_path) = link.link_type.relative_path(path) {
+                    replaced.push_str(&replace_all(
+                        &new_content,
+                        rel_path,
+                        source,
+                        depth + 1,
+                        chapter_title,
+                    ));
+                } else {
+                    replaced.push_str(&new_content);
+                }
             }
             Err(e) => {
                 error!("Error updating \"{}\", {}", link.link_text, e);
