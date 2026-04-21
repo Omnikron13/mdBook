@@ -1,6 +1,6 @@
 use self::take_lines::{
-    take_anchored_lines, take_lines, take_rustdoc_include_anchored_lines,
-    take_rustdoc_include_lines,
+    take_anchored_lines, take_lines,
+    take_rustdoc_anchored_lines, take_rustdoc_lines,
 };
 use anyhow::{Context, Result};
 use mdbook_core::book::{Book, BookItem};
@@ -393,13 +393,13 @@ impl<'a> Link<'a> {
 
                 match range_or_anchor {
                     RangeOrAnchor::Range(range) => {
-                        for (line, show) in take_rustdoc_include_lines(&contents, range.clone()) {
+                        for (line, show) in take_rustdoc_lines(&contents, range.clone()) {
                            write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
                                .expect("String writes don't fail");
                         }
                     }
                     RangeOrAnchor::Anchor(anchor) => {
-                        for (line, show) in take_rustdoc_include_anchored_lines(&contents, anchor) {
+                        for (line, show) in take_rustdoc_anchored_lines(&contents, anchor) {
                            write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
                                .expect("String writes don't fail");
                         }

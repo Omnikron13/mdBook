@@ -50,7 +50,7 @@ pub(super) fn take_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator
 /// and (line, false) for those outside of the range.
 /// This is to allow hiding the lines from initial display but include them when
 /// expanding the code snippet or testing with rustdoc.
-pub(super) fn take_rustdoc_include_lines<R: RangeBounds<usize>>(s: &str, range: R) -> impl Iterator<Item = (&str, bool)> {
+pub(super) fn take_rustdoc_lines<R: RangeBounds<usize>>(s: &str, range: R) -> impl Iterator<Item = (&str, bool)> {
     s.lines().enumerate().map(move |(index, line)| {
         (line, range.contains(&index))
     })
@@ -60,7 +60,7 @@ pub(super) fn take_rustdoc_include_lines<R: RangeBounds<usize>>(s: &str, range: 
 /// comments, and (line, false) for those outside of the specified anchor.
 /// This is to allow hiding the lines from initial display but include them when
 /// expanding the code snippet or testing with rustdoc.
-pub(super) fn take_rustdoc_include_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
+pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
     let mut in_anchored = false;
     let mut done = false;
     s.lines().filter_map(move |line| {
@@ -93,8 +93,8 @@ pub(super) fn take_rustdoc_include_anchored_lines<'a>(s: &'a str, anchor: &str) 
 #[cfg(test)]
 mod tests {
     use super::{
-        take_anchored_lines, take_lines, take_rustdoc_include_anchored_lines,
-        take_rustdoc_include_lines,
+        take_anchored_lines, take_lines, take_rustdoc_anchored_lines,
+        take_rustdoc_lines,
     };
 
     #[test]
@@ -141,10 +141,10 @@ mod tests {
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)] // Intentionally checking that those are correctly handled
-    fn take_rustdoc_include_lines_test() {
+    fn take_rustdoc_lines_test() {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
         assert_eq!(
-           take_rustdoc_include_lines(s, 1..3)
+           take_rustdoc_lines(s, 1..3)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -153,7 +153,7 @@ mod tests {
            "# Lorem\nipsum\ndolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_include_lines(s, 3..)
+           take_rustdoc_lines(s, 3..)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -162,7 +162,7 @@ mod tests {
            "# Lorem\n# ipsum\n# dolor\nsit\namet"
         );
         assert_eq!(
-           take_rustdoc_include_lines(s, ..3)
+           take_rustdoc_lines(s, ..3)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -171,7 +171,7 @@ mod tests {
            "Lorem\nipsum\ndolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_include_lines(s, ..)
+           take_rustdoc_lines(s, ..)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -181,7 +181,7 @@ mod tests {
         );
         // corner cases
         assert_eq!(
-           take_rustdoc_include_lines(s, 4..3)
+           take_rustdoc_lines(s, 4..3)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -190,7 +190,7 @@ mod tests {
            "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_include_lines(s, ..100)
+           take_rustdoc_lines(s, ..100)
                .map(|(line, show)| {
                    format!("{}{line}", show.then_some("").unwrap_or("# "))
                })
@@ -201,10 +201,10 @@ mod tests {
     }
 
     #[test]
-    fn take_rustdoc_include_anchored_lines_test() {
+    fn take_rustdoc_anchored_lines_test() {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -215,7 +215,7 @@ mod tests {
 
         let s = "Lorem\nipsum\ndolor\nANCHOR_END: test\nsit\namet";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -226,7 +226,7 @@ mod tests {
 
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -235,7 +235,7 @@ mod tests {
             "# Lorem\n# ipsum\ndolor\nsit\namet"
         );
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "something")
+            take_rustdoc_anchored_lines(s, "something")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -246,7 +246,7 @@ mod tests {
 
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -255,7 +255,7 @@ mod tests {
             "# Lorem\n# ipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "something")
+            take_rustdoc_anchored_lines(s, "something")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -266,7 +266,7 @@ mod tests {
 
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -275,7 +275,7 @@ mod tests {
             "# Lorem\nipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "something")
+            take_rustdoc_anchored_lines(s, "something")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -286,7 +286,7 @@ mod tests {
 
         let s = "Lorem\nANCHOR:    test2\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nANCHOR_END:test2\nipsum";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test2")
+            take_rustdoc_anchored_lines(s, "test2")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -295,7 +295,7 @@ mod tests {
             "# Lorem\nipsum\ndolor\nsit\namet\nlorem\n# ipsum"
         );
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -304,7 +304,7 @@ mod tests {
             "# Lorem\n# ipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "something")
+            take_rustdoc_anchored_lines(s, "something")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
@@ -318,7 +318,7 @@ mod tests {
         // behaviour in the testsuite.
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR_END: test\ndolor\nANCHOR: test\nsit\nANCHOR_END: test\namet";
         assert_eq!(
-            take_rustdoc_include_anchored_lines(s, "test")
+            take_rustdoc_anchored_lines(s, "test")
                 .map(|(line, show)| {
                     format!("{}{line}", show.then_some("").unwrap_or("# "))
                 })
