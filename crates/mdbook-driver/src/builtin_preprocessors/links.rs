@@ -91,7 +91,7 @@ where
     let path = path.as_ref();
     let source = source.as_ref();
     let mut previous_end_index = 0;
-    let mut replaced = String::new();
+    let mut replaced = String::with_capacity(s.len());
 
     for link in find_links(s) {
         replaced.push_str(&s[previous_end_index..link.start_index]);
