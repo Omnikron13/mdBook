@@ -345,7 +345,7 @@ impl<'a> Link<'a> {
                 write!(out, "{prefix}{}", &self.link_text[1..])
                     .expect("String writes don't fail");
                 Ok(out)
-            },
+            }
 
             LinkType::Include(ref pat, ref range_or_anchor) => {
                 let target = base.join(pat);
@@ -365,13 +365,13 @@ impl<'a> Link<'a> {
                             write!(out, "{prefix}{line}\n")
                                 .expect("String writes don't fail");
                         }
-                    },
+                    }
                     RangeOrAnchor::Anchor(anchor) => {
                         for line in take_anchored_lines(&contents, anchor) {
                             write!(out, "{prefix}{line}\n")
                                 .expect("String writes don't fail");
                         }
-                    },
+                    }
                 }
 
                 // Trim trailing new line
