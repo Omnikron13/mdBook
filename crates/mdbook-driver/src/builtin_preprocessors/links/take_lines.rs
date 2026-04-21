@@ -62,17 +62,10 @@ pub(super) fn take_rustdoc_lines<R: RangeBounds<usize>>(s: &str, range: R) -> im
 /// expanding the code snippet or testing with rustdoc.
 pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
     let mut in_anchored = false;
-    let mut done = false;
     s.lines().filter_map(move |line| {
-        if done {
-            if ANCHOR_START.is_match(line) { return None; }
-            if ANCHOR_END.is_match(line) { return None; }
-            return Some((line, false));
-        }
-
         if in_anchored {
             if let Some(captures) = ANCHOR_END.captures(line) {
-                if captures[1] == *anchor { done = true; }
+                if captures[1] == *anchor { in_anchored = false; }
                 return None;
             }
             if ANCHOR_START.is_match(line) { return None; }
@@ -313,9 +306,6 @@ mod tests {
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet\n# lorem\n# ipsum"
         );
 
-        // TODO: determine if this test actually reflects intended behaviour; the documentation
-        // describes an anchor as 'a pair of matching lines', and there is no test for this additional
-        // behaviour in the testsuite.
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR_END: test\ndolor\nANCHOR: test\nsit\nANCHOR_END: test\namet";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
