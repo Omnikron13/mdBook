@@ -1,6 +1,6 @@
 use self::take_lines::{
-    take_anchored_lines, take_lines, take_rustdoc_include_anchored_lines,
-    take_rustdoc_include_lines,
+    take_anchored_lines, take_lines,
+    take_rustdoc_anchored_lines, take_rustdoc_lines,
 };
 use anyhow::{Context, Result};
 use mdbook_core::book::{Book, BookItem};
@@ -91,32 +91,41 @@ where
     let path = path.as_ref();
     let source = source.as_ref();
     let mut previous_end_index = 0;
-    let mut replaced = String::new();
+    let mut replaced = String::with_capacity(s.len());
 
     for link in find_links(s) {
-        replaced.push_str(&s[previous_end_index..link.start_index]);
+        // Text from end of last link to start of current link
+        let text = &s[previous_end_index..link.start_index];
 
-        match link.render_with_path(path, chapter_title) {
+        // Text from start of line to start of current link.
+        let prefix = text.rfind('\n').map_or(text, |i| &text[i+1..]);
+
+        // Stable equivalent of trim_suffix()
+        replaced.push_str(text.strip_suffix(prefix).unwrap_or(text));
+
+        match link.render_with_path(path, chapter_title, prefix) {
             Ok(new_content) => {
-                if depth < MAX_LINK_NESTED_DEPTH {
-                    if let Some(rel_path) = link.link_type.relative_path(path) {
-                        replaced.push_str(&replace_all(
-                            &new_content,
-                            rel_path,
-                            source,
-                            depth + 1,
-                            chapter_title,
-                        ));
-                    } else {
-                        replaced.push_str(&new_content);
-                    }
-                } else {
+                previous_end_index = link.end_index;
+
+                if depth >= MAX_LINK_NESTED_DEPTH {
                     error!(
                         "Stack depth exceeded in {}. Check for cyclic includes",
                         source.display()
                     );
+                    continue;
                 }
-                previous_end_index = link.end_index;
+
+                if let Some(rel_path) = link.link_type.relative_path(path) {
+                    replaced.push_str(&replace_all(
+                        &new_content,
+                        rel_path,
+                        source,
+                        depth + 1,
+                        chapter_title,
+                    ));
+                } else {
+                    replaced.push_str(&new_content);
+                }
             }
             Err(e) => {
                 error!("Error updating \"{}\", {}", link.link_text, e);
@@ -325,61 +334,100 @@ impl<'a> Link<'a> {
         &self,
         base: P,
         chapter_title: &mut String,
+        prefix: &str,
     ) -> Result<String> {
+        use std::fmt::Write;
         let base = base.as_ref();
+        let mut out = String::new();
         match self.link_type {
             // omit the escape char
-            LinkType::Escaped => Ok(self.link_text[1..].to_owned()),
+            LinkType::Escaped => {
+                write!(out, "{prefix}{}", &self.link_text[1..])
+                    .expect("String writes don't fail");
+                Ok(out)
+            }
+
             LinkType::Include(ref pat, ref range_or_anchor) => {
                 let target = base.join(pat);
 
-                fs::read_to_string(&target)
-                    .map(|s| match range_or_anchor {
-                        RangeOrAnchor::Range(range) => take_lines(&s, range.clone()),
-                        RangeOrAnchor::Anchor(anchor) => take_anchored_lines(&s, anchor),
-                    })
+                let contents = fs::read_to_string(&target)
                     .with_context(|| {
                         format!(
                             "Could not read file for link {} ({})",
                             self.link_text,
                             target.display(),
                         )
-                    })
+                    })?;
+
+                match range_or_anchor {
+                    RangeOrAnchor::Range(range) => {
+                        for line in take_lines(&contents, range.clone()) {
+                            write!(out, "{prefix}{line}\n")
+                                .expect("String writes don't fail");
+                        }
+                    }
+                    RangeOrAnchor::Anchor(anchor) => {
+                        for line in take_anchored_lines(&contents, anchor) {
+                            write!(out, "{prefix}{line}\n")
+                                .expect("String writes don't fail");
+                        }
+                    }
+                }
+
+                // Trim trailing new line
+                out.pop();
+                Ok(out)
             }
+
             LinkType::RustdocInclude(ref pat, ref range_or_anchor) => {
                 let target = base.join(pat);
 
-                fs::read_to_string(&target)
-                    .map(|s| match range_or_anchor {
-                        RangeOrAnchor::Range(range) => {
-                            take_rustdoc_include_lines(&s, range.clone())
-                        }
-                        RangeOrAnchor::Anchor(anchor) => {
-                            take_rustdoc_include_anchored_lines(&s, anchor)
-                        }
-                    })
+                let contents = fs::read_to_string(&target)
                     .with_context(|| {
                         format!(
                             "Could not read file for link {} ({})",
                             self.link_text,
                             target.display(),
                         )
-                    })
+                    })?;
+
+                match range_or_anchor {
+                    RangeOrAnchor::Range(range) => {
+                        for (line, show) in take_rustdoc_lines(&contents, range.clone()) {
+                           write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
+                               .expect("String writes don't fail");
+                        }
+                    }
+                    RangeOrAnchor::Anchor(anchor) => {
+                        for (line, show) in take_rustdoc_anchored_lines(&contents, anchor) {
+                           write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
+                               .expect("String writes don't fail");
+                        }
+                    }
+                }
+
+                // Trim trailing new line
+                out.pop();
+                Ok(out)
             }
+
             LinkType::Playground(ref pat, ref attrs) => {
                 let target = base.join(pat);
 
-                let mut contents = fs::read_to_string(&target).with_context(|| {
-                    format!(
-                        "Could not read file for link {} ({})",
-                        self.link_text,
-                        target.display()
-                    )
-                })?;
+                let mut contents = fs::read_to_string(&target).
+                    with_context(|| {
+                        format!(
+                            "Could not read file for link {} ({})",
+                            self.link_text,
+                            target.display()
+                        )
+                    })?;
+
                 let ftype = if !attrs.is_empty() { "rust," } else { "rust" };
                 if !contents.ends_with('\n') {
                     contents.push('\n');
                 }
+
                 Ok(format!(
                     "```{}{}\n{}```\n",
                     ftype,
@@ -387,6 +435,7 @@ impl<'a> Link<'a> {
                     contents
                 ))
             }
+
             LinkType::Title(title) => {
                 *chapter_title = title.to_owned();
                 Ok(String::new())
