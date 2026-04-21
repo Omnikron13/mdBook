@@ -46,20 +46,20 @@ pub(super) fn take_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator
     })
 }
 
-/// Keep lines contained within the range specified as-is.
-/// For any lines not in the range, include them but use `#` at the beginning. This will hide the
-/// lines from initial display but include them when expanding the code snippet or testing with
-/// rustdoc.
+/// Returns an iterator over (line, true) for lines within the specified range,
+/// and (line, false) for those outside of the range.
+/// This is to allow hiding the lines from initial display but include them when
+/// expanding the code snippet or testing with rustdoc.
 pub(super) fn take_rustdoc_include_lines<R: RangeBounds<usize>>(s: &str, range: R) -> impl Iterator<Item = (&str, bool)> {
     s.lines().enumerate().map(move |(index, line)| {
         (line, range.contains(&index))
     })
 }
 
-/// Keep lines between the anchor comments specified as-is.
-/// For any lines not between the anchors, include them but use `#` at the beginning. This will
-/// hide the lines from initial display but include them when expanding the code snippet or testing
-/// with rustdoc.
+/// Returns an iterator over (line, true) for lines between the specified anchor
+/// comments, and (line, false) for those outside of the specified anchor.
+/// This is to allow hiding the lines from initial display but include them when
+/// expanding the code snippet or testing with rustdoc.
 pub(super) fn take_rustdoc_include_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
     let mut in_anchored = false;
     let mut done = false;
