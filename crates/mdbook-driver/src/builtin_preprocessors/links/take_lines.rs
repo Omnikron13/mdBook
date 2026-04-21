@@ -65,9 +65,9 @@ pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl 
     let mut done = false;
     s.lines().filter_map(move |line| {
         if done {
-           if ANCHOR_START.is_match(line) { return None; }
-           if ANCHOR_END.is_match(line) { return None; }
-           return Some((line, false));
+            if ANCHOR_START.is_match(line) { return None; }
+            if ANCHOR_END.is_match(line) { return None; }
+            return Some((line, false));
         }
 
         if in_anchored {
