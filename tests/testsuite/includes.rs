@@ -109,6 +109,16 @@ fn rustdoc_include() {
 </span>fn main() {
     some_other_function();
 }</code></pre>
+<h2 id="multiple-anchor-pairs"><a class="header" href="#multiple-anchor-pairs">Multiple anchor pairs</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">// This tests multiple anchor pairs that are meant to be included
+</span><span class="boring">fn main() {
+</span>    println!("yes");
+    println!("yes");
+<span class="boring">    println!("no");
+</span>    println!("yes");
+<span class="boring">    println!("no");
+</span><span class="boring">    println!("no");
+</span><span class="boring">}</span></code></pre>
 "##]]);
 }
 
