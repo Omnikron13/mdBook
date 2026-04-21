@@ -368,6 +368,7 @@ impl<'a> Link<'a> {
                         )
                     })
             }
+
             LinkType::Playground(ref pat, ref attrs) => {
                 let target = base.join(pat);
 
@@ -384,6 +385,7 @@ impl<'a> Link<'a> {
                 if !contents.ends_with('\n') {
                     contents.push('\n');
                 }
+
                 Ok(format!(
                     "```{}{}\n{}```\n",
                     ftype,
@@ -391,6 +393,7 @@ impl<'a> Link<'a> {
                     contents
                 ))
             }
+
             LinkType::Title(title) => {
                 *chapter_title = title.to_owned();
                 Ok(String::new())
