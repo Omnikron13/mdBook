@@ -58,11 +58,11 @@ pub(super) fn take_rustdoc_lines<R: RangeBounds<usize>>(s: &str, range: R) -> im
 /// This is to allow hiding the lines from initial display but include them when
 /// expanding the code snippet or testing with rustdoc.
 pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
-    let mut in_anchored = false;
+    let mut in_anchor = false;
     s.lines().filter_map(move |line| {
-        if in_anchored {
+        if in_anchor {
             if let Some(captures) = ANCHOR_END.captures(line) {
-                if captures[1] == *anchor { in_anchored = false; }
+                if captures[1] == *anchor { in_anchor = false; }
                 return None;
             }
             if ANCHOR_START.is_match(line) { return None; }
@@ -72,7 +72,7 @@ pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl 
         if ANCHOR_END.is_match(line) { return None; }
 
         if let Some(captures) = ANCHOR_START.captures(line) {
-            if captures[1] == *anchor { in_anchored = true; }
+            if captures[1] == *anchor { in_anchor = true; }
             return None;
         }
 
