@@ -127,6 +127,9 @@ mod tests {
         );
         assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "dolor\nsit\namet");
         assert_eq!(take_anchored_lines(s, "something").collect::<Vec<_>>().join("\n"), "");
+
+        let s = "Lorem\nANCHOR: test\nipsum\nANCHOR_END: test\ndolor\nANCHOR: test\nsit\nANCHOR_END: test\namet";
+        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "ipsum\nsit");
     }
 
     #[test]
