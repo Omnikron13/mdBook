@@ -23,27 +23,23 @@ static_regex!(ANCHOR_END, r"ANCHOR_END:\s*(?P<anchor_name>[\w_-]+)");
 /// Take anchored lines from a string.
 /// Lines containing anchor are ignored.
 pub(super) fn take_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = &'a str> {
-    // TODO: mirror rustdoc version behaviour re; multiple anchors?
-    let mut anchor_found = false;
-    let mut done = false;
+    let mut in_anchor = false;
     s.lines().filter(move |line| {
-        if done { return false; }
-
-        if !anchor_found {
-            if let Some(captures) = ANCHOR_START.captures(line) {
-               if captures[1] == *anchor { anchor_found = true; }
+        if in_anchor {
+            if let Some(captures) = ANCHOR_END.captures(line) {
+               if captures[1] == *anchor { in_anchor = false; }
+               return false;
             }
-            return false;
+            return !ANCHOR_START.is_match(line);
         }
 
-        if ANCHOR_START.is_match(line) { return false; }
+        if ANCHOR_END.is_match(line) { return false; }
 
-        if let Some(captures) = ANCHOR_END.captures(line) {
-            if captures[1] == *anchor { done = true; }
-            return false;
+        if let Some(captures) = ANCHOR_START.captures(line) {
+            if captures[1] == *anchor { in_anchor = true; }
         }
 
-        true
+        false
     })
 }
 
