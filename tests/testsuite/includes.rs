@@ -38,9 +38,9 @@ fn anchored_include() {
 <h2 id="multiple-anchor-pairs"><a class="header" href="#multiple-anchor-pairs">Multiple anchor pairs</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>    println!("yes");
-    println!("yes");
-    println!("yes");
+</span>println!("yes");
+println!("yes");
+println!("yes");
 <span class="boring">}</span></code></pre>
 "##]],
     );
