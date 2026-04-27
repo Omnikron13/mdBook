@@ -348,6 +348,8 @@ impl<'a> Link<'a> {
             }
 
             LinkType::Include(ref pat, ref range_or_anchor) => {
+                use RangeOrAnchor::*;
+
                 let target = base.join(pat);
 
                 let contents = fs::read_to_string(&target)
@@ -359,19 +361,26 @@ impl<'a> Link<'a> {
                         )
                     })?;
 
-                match range_or_anchor {
-                    RangeOrAnchor::Range(range) => {
-                        for line in take_lines(&contents, range.clone()) {
-                            write!(out, "{prefix}{line}\n")
-                                .expect("String writes don't fail");
-                        }
-                    }
-                    RangeOrAnchor::Anchor(anchor) => {
-                        for line in take_anchored_lines(&contents, anchor) {
-                            write!(out, "{prefix}{line}\n")
-                                .expect("String writes don't fail");
-                        }
-                    }
+                let lines: Vec<_> = match range_or_anchor {
+                   Range(range) => {
+                       take_lines(&contents, range.clone()).collect()
+                   }
+                   Anchor(anchor) => {
+                       take_anchored_lines(&contents, anchor).collect()
+                   }
+                };
+
+                // Count shared leading spaces
+                let trim = lines.iter()
+                    .map(|line| {
+                        line.bytes().take_while(|&b| b == b' ').count()
+                    })
+                    .fold(usize::MAX, std::cmp::min)
+                ;
+
+                for line in lines {
+                    write!(out, "{prefix}{}\n", &line[trim..])
+                        .expect("String writes don't fail");
                 }
 
                 // Trim trailing new line
