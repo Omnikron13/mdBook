@@ -347,10 +347,10 @@ impl<'a> Link<'a> {
                 Ok(out)
             }
 
-            LinkType::Include(ref pat, ref range_or_anchor) => {
+            LinkType::Include(ref path, ref range_or_anchor) => {
                 use RangeOrAnchor::*;
 
-                let target = base.join(pat);
+                let target = base.join(path);
 
                 let contents = fs::read_to_string(&target)
                     .with_context(|| {
@@ -388,8 +388,8 @@ impl<'a> Link<'a> {
                 Ok(out)
             }
 
-            LinkType::RustdocInclude(ref pat, ref range_or_anchor) => {
-                let target = base.join(pat);
+            LinkType::RustdocInclude(ref path, ref range_or_anchor) => {
+                let target = base.join(path);
 
                 let contents = fs::read_to_string(&target)
                     .with_context(|| {
@@ -420,8 +420,8 @@ impl<'a> Link<'a> {
                 Ok(out)
             }
 
-            LinkType::Playground(ref pat, ref attrs) => {
-                let target = base.join(pat);
+            LinkType::Playground(ref path, ref attrs) => {
+                let target = base.join(path);
 
                 let mut contents = fs::read_to_string(&target)
                     .with_context(|| {
