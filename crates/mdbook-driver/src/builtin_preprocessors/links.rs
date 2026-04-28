@@ -433,6 +433,7 @@ impl<'a> Link<'a> {
                     })?;
 
                 let ftype = if !attrs.is_empty() { "rust," } else { "rust" };
+
                 if !contents.ends_with('\n') {
                     contents.push('\n');
                 }
