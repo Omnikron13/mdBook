@@ -295,20 +295,19 @@ impl<'a> Link<'a> {
                 Some(LinkType::Title(title.as_str()))
             }
             (_, Some(typ), Some(rest)) => {
-                let mut path_props = rest.as_str().split_whitespace();
-                let file_arg = path_props.next();
-                let props: Vec<&str> = path_props.collect();
+                let mut props = rest.as_str().split_whitespace();
+                let file_arg = props.next();
 
                 match (typ.as_str(), file_arg) {
                     ("include", Some(pth)) => Some(parse_include_path(pth)),
-                    ("playground", Some(pth)) => Some(LinkType::Playground(pth.into(), props)),
+                    ("playground", Some(pth)) => Some(LinkType::Playground(pth.into(), props.collect())),
                     ("playpen", Some(pth)) => {
                         warn!(
                             "the {{{{#playpen}}}} expression has been \
                             renamed to {{{{#playground}}}}, \
                             please update your book to use the new name"
                         );
-                        Some(LinkType::Playground(pth.into(), props))
+                        Some(LinkType::Playground(pth.into(), props.collect()))
                     }
                     ("rustdoc_include", Some(pth)) => Some(parse_rustdoc_include_path(pth)),
                     _ => None,
