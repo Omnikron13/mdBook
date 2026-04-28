@@ -422,7 +422,7 @@ impl<'a> Link<'a> {
             LinkType::Playground(ref path, ref attrs) => {
                 let target = base.join(path);
 
-                let mut contents = fs::read_to_string(&target)
+                let contents = fs::read_to_string(&target)
                     .with_context(|| {
                         format!(
                             "Could not read file for link {} ({})",
@@ -431,18 +431,24 @@ impl<'a> Link<'a> {
                         )
                     })?;
 
-                let ftype = if !attrs.is_empty() { "rust," } else { "rust" };
+                let mut out = String::with_capacity(contents.len() + 11);
 
-                if !contents.ends_with('\n') {
-                    contents.push('\n');
+                out.push_str(prefix);
+                out.push_str("```rust");
+                for s in attrs {
+                    out.push_str(",");
+                    out.push_str(s);
+                }
+                out.push_str("\n");
+
+                for line in contents.lines() {
+                    write!(out, "{prefix}{line}\n")
+                        .expect("String writes don't fail");
                 }
 
-                Ok(format!(
-                    "```{}{}\n{}```\n",
-                    ftype,
-                    attrs.join(","),
-                    contents
-                ))
+                out.push_str("```");
+
+                Ok(out)
             }
 
             LinkType::Title(title) => {
