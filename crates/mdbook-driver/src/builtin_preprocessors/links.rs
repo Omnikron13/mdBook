@@ -299,17 +299,17 @@ impl<'a> Link<'a> {
                 let file_arg = props.next();
 
                 match (typ.as_str(), file_arg) {
-                    ("include", Some(pth)) => Some(parse_include_path(pth)),
-                    ("playground", Some(pth)) => Some(LinkType::Playground(pth.into(), props.collect())),
-                    ("playpen", Some(pth)) => {
+                    ("include", Some(path)) => Some(parse_include_path(path)),
+                    ("playground", Some(path)) => Some(LinkType::Playground(path.into(), props.collect())),
+                    ("playpen", Some(path)) => {
                         warn!(
                             "the {{{{#playpen}}}} expression has been \
                             renamed to {{{{#playground}}}}, \
                             please update your book to use the new name"
                         );
-                        Some(LinkType::Playground(pth.into(), props.collect()))
+                        Some(LinkType::Playground(path.into(), props.collect()))
                     }
-                    ("rustdoc_include", Some(pth)) => Some(parse_rustdoc_include_path(pth)),
+                    ("rustdoc_include", Some(path)) => Some(parse_rustdoc_include_path(path)),
                     _ => None,
                 }
             }
