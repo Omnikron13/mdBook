@@ -132,10 +132,9 @@ fn rustdoc_include() {
 // Tests `{{#include}}`s that are indented (e.g. `    {{#include}}`)
 #[test]
 fn indented_include() {
-    BookTest::from_dir("includes/all_includes")
-        .check_main_file(
-            "book/indented.html",
-            str![[r##"
+    BookTest::from_dir("includes/all_includes").check_main_file(
+        "book/indented.html",
+        str![[r##"
 <h1 id="indented-includes"><a class="header" href="#indented-includes">Indented Includes</a></h1>
 <ul>
 <li>
@@ -182,6 +181,5 @@ fn indented_include() {
 </li>
 </ul>
 "##]],
-        )
-    ;
+    );
 }

@@ -1,6 +1,5 @@
 use self::take_lines::{
-    take_anchored_lines, take_lines,
-    take_rustdoc_anchored_lines, take_rustdoc_lines,
+    take_anchored_lines, take_lines, take_rustdoc_anchored_lines, take_rustdoc_lines,
 };
 use anyhow::{Context, Result};
 use mdbook_core::book::{Book, BookItem};
@@ -98,7 +97,7 @@ where
         let text = &s[previous_end_index..link.start_index];
 
         // Text from start of line to start of current link.
-        let prefix = text.rfind('\n').map_or(text, |i| &text[i+1..]);
+        let prefix = text.rfind('\n').map_or(text, |i| &text[i + 1..]);
 
         // Stable equivalent of trim_suffix()
         replaced.push_str(text.strip_suffix(prefix).unwrap_or(text));
@@ -300,7 +299,9 @@ impl<'a> Link<'a> {
 
                 match (typ.as_str(), file_arg) {
                     ("include", Some(path)) => Some(parse_include_path(path)),
-                    ("playground", Some(path)) => Some(LinkType::Playground(path.into(), props.collect())),
+                    ("playground", Some(path)) => {
+                        Some(LinkType::Playground(path.into(), props.collect()))
+                    }
                     ("playpen", Some(path)) => {
                         warn!(
                             "the {{{{#playpen}}}} expression has been \
@@ -341,8 +342,7 @@ impl<'a> Link<'a> {
         match self.link_type {
             // omit the escape char
             LinkType::Escaped => {
-                write!(out, "{prefix}{}", &self.link_text[1..])
-                    .expect("String writes don't fail");
+                write!(out, "{prefix}{}", &self.link_text[1..]).expect("String writes don't fail");
                 Ok(out)
             }
 
@@ -351,35 +351,27 @@ impl<'a> Link<'a> {
 
                 let target = base.join(path);
 
-                let contents = fs::read_to_string(&target)
-                    .with_context(|| {
-                        format!(
-                            "Could not read file for link {} ({})",
-                            self.link_text,
-                            target.display(),
-                        )
-                    })?;
+                let contents = fs::read_to_string(&target).with_context(|| {
+                    format!(
+                        "Could not read file for link {} ({})",
+                        self.link_text,
+                        target.display(),
+                    )
+                })?;
 
                 let lines: Vec<_> = match range_or_anchor {
-                   Range(range) => {
-                       take_lines(&contents, range.clone()).collect()
-                   }
-                   Anchor(anchor) => {
-                       take_anchored_lines(&contents, anchor).collect()
-                   }
+                    Range(range) => take_lines(&contents, range.clone()).collect(),
+                    Anchor(anchor) => take_anchored_lines(&contents, anchor).collect(),
                 };
 
                 // Count shared leading spaces
-                let trim = lines.iter()
-                    .map(|line| {
-                        line.bytes().take_while(|&b| b == b' ').count()
-                    })
-                    .fold(usize::MAX, std::cmp::min)
-                ;
+                let trim = lines
+                    .iter()
+                    .map(|line| line.bytes().take_while(|&b| b == b' ').count())
+                    .fold(usize::MAX, std::cmp::min);
 
                 for line in lines {
-                    write!(out, "{prefix}{}\n", &line[trim..])
-                        .expect("String writes don't fail");
+                    write!(out, "{prefix}{}\n", &line[trim..]).expect("String writes don't fail");
                 }
 
                 // Trim trailing new line
@@ -390,26 +382,33 @@ impl<'a> Link<'a> {
             LinkType::RustdocInclude(ref path, ref range_or_anchor) => {
                 let target = base.join(path);
 
-                let contents = fs::read_to_string(&target)
-                    .with_context(|| {
-                        format!(
-                            "Could not read file for link {} ({})",
-                            self.link_text,
-                            target.display(),
-                        )
-                    })?;
+                let contents = fs::read_to_string(&target).with_context(|| {
+                    format!(
+                        "Could not read file for link {} ({})",
+                        self.link_text,
+                        target.display(),
+                    )
+                })?;
 
                 match range_or_anchor {
                     RangeOrAnchor::Range(range) => {
                         for (line, show) in take_rustdoc_lines(&contents, range.clone()) {
-                           write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
-                               .expect("String writes don't fail");
+                            write!(
+                                out,
+                                "{prefix}{}{line}\n",
+                                show.then_some("").unwrap_or("# ")
+                            )
+                            .expect("String writes don't fail");
                         }
                     }
                     RangeOrAnchor::Anchor(anchor) => {
                         for (line, show) in take_rustdoc_anchored_lines(&contents, anchor) {
-                           write!(out, "{prefix}{}{line}\n", show.then_some("").unwrap_or("# "))
-                               .expect("String writes don't fail");
+                            write!(
+                                out,
+                                "{prefix}{}{line}\n",
+                                show.then_some("").unwrap_or("# ")
+                            )
+                            .expect("String writes don't fail");
                         }
                     }
                 }
@@ -422,14 +421,13 @@ impl<'a> Link<'a> {
             LinkType::Playground(ref path, ref attrs) => {
                 let target = base.join(path);
 
-                let contents = fs::read_to_string(&target)
-                    .with_context(|| {
-                        format!(
-                            "Could not read file for link {} ({})",
-                            self.link_text,
-                            target.display()
-                        )
-                    })?;
+                let contents = fs::read_to_string(&target).with_context(|| {
+                    format!(
+                        "Could not read file for link {} ({})",
+                        self.link_text,
+                        target.display()
+                    )
+                })?;
 
                 let mut out = String::with_capacity(contents.len() + 11);
 
@@ -442,8 +440,7 @@ impl<'a> Link<'a> {
                 out.push_str("\n");
 
                 for line in contents.lines() {
-                    write!(out, "{prefix}{line}\n")
-                        .expect("String writes don't fail");
+                    write!(out, "{prefix}{line}\n").expect("String writes don't fail");
                 }
 
                 out.push_str("```");

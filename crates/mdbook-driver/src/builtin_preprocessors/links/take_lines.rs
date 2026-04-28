@@ -27,16 +27,22 @@ pub(super) fn take_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator
     s.lines().filter(move |line| {
         if in_anchor {
             if let Some(captures) = ANCHOR_END.captures(line) {
-               if captures[1] == *anchor { in_anchor = false; }
-               return false;
+                if captures[1] == *anchor {
+                    in_anchor = false;
+                }
+                return false;
             }
             return !ANCHOR_START.is_match(line);
         }
 
-        if ANCHOR_END.is_match(line) { return false; }
+        if ANCHOR_END.is_match(line) {
+            return false;
+        }
 
         if let Some(captures) = ANCHOR_START.captures(line) {
-            if captures[1] == *anchor { in_anchor = true; }
+            if captures[1] == *anchor {
+                in_anchor = true;
+            }
         }
 
         false
@@ -47,32 +53,46 @@ pub(super) fn take_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator
 /// and (line, false) for those outside of the range.
 /// This is to allow hiding the lines from initial display but include them when
 /// expanding the code snippet or testing with rustdoc.
-pub(super) fn take_rustdoc_lines<R: RangeBounds<usize>>(s: &str, range: R) -> impl Iterator<Item = (&str, bool)> {
-    s.lines().enumerate().map(move |(index, line)| {
-        (line, range.contains(&index))
-    })
+pub(super) fn take_rustdoc_lines<R: RangeBounds<usize>>(
+    s: &str,
+    range: R,
+) -> impl Iterator<Item = (&str, bool)> {
+    s.lines()
+        .enumerate()
+        .map(move |(index, line)| (line, range.contains(&index)))
 }
 
 /// Returns an iterator over (line, true) for lines between the specified anchor
 /// comments, and (line, false) for those outside of the specified anchor.
 /// This is to allow hiding the lines from initial display but include them when
 /// expanding the code snippet or testing with rustdoc.
-pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl Iterator<Item = (&'a str, bool)> {
+pub(super) fn take_rustdoc_anchored_lines<'a>(
+    s: &'a str,
+    anchor: &str,
+) -> impl Iterator<Item = (&'a str, bool)> {
     let mut in_anchor = false;
     s.lines().filter_map(move |line| {
         if in_anchor {
             if let Some(captures) = ANCHOR_END.captures(line) {
-                if captures[1] == *anchor { in_anchor = false; }
+                if captures[1] == *anchor {
+                    in_anchor = false;
+                }
                 return None;
             }
-            if ANCHOR_START.is_match(line) { return None; }
+            if ANCHOR_START.is_match(line) {
+                return None;
+            }
             return Some((line, true));
         }
 
-        if ANCHOR_END.is_match(line) { return None; }
+        if ANCHOR_END.is_match(line) {
+            return None;
+        }
 
         if let Some(captures) = ANCHOR_START.captures(line) {
-            if captures[1] == *anchor { in_anchor = true; }
+            if captures[1] == *anchor {
+                in_anchor = true;
+            }
             return None;
         }
 
@@ -82,18 +102,24 @@ pub(super) fn take_rustdoc_anchored_lines<'a>(s: &'a str, anchor: &str) -> impl 
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        take_anchored_lines, take_lines, take_rustdoc_anchored_lines,
-        take_rustdoc_lines,
-    };
+    use super::{take_anchored_lines, take_lines, take_rustdoc_anchored_lines, take_rustdoc_lines};
 
     #[test]
     #[allow(clippy::reversed_empty_ranges)] // Intentionally checking that those are correctly handled
     fn take_lines_test() {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
-        assert_eq!(take_lines(s, 1..3).collect::<Vec<_>>().join("\n"), "ipsum\ndolor");
-        assert_eq!(take_lines(s, 3..).collect::<Vec<_>>().join("\n"), "sit\namet");
-        assert_eq!(take_lines(s, ..3).collect::<Vec<_>>().join("\n"), "Lorem\nipsum\ndolor");
+        assert_eq!(
+            take_lines(s, 1..3).collect::<Vec<_>>().join("\n"),
+            "ipsum\ndolor"
+        );
+        assert_eq!(
+            take_lines(s, 3..).collect::<Vec<_>>().join("\n"),
+            "sit\namet"
+        );
+        assert_eq!(
+            take_lines(s, ..3).collect::<Vec<_>>().join("\n"),
+            "Lorem\nipsum\ndolor"
+        );
         assert_eq!(take_lines(s, ..).collect::<Vec<_>>().join("\n"), s);
         // corner cases
         assert_eq!(take_lines(s, 4..3).collect::<Vec<_>>().join("\n"), "");
@@ -103,33 +129,90 @@ mod tests {
     #[test]
     fn take_anchored_lines_test() {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nipsum\ndolor\nANCHOR_END: test\nsit\namet";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "dolor\nsit\namet");
-        assert_eq!(take_anchored_lines(s, "something").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "dolor\nsit\namet"
+        );
+        assert_eq!(
+            take_anchored_lines(s, "something")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "dolor\nsit\namet");
-        assert_eq!(take_anchored_lines(s, "something").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "dolor\nsit\namet"
+        );
+        assert_eq!(
+            take_anchored_lines(s, "something")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "ipsum\ndolor\nsit\namet");
-        assert_eq!(take_anchored_lines(s, "something").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "ipsum\ndolor\nsit\namet"
+        );
+        assert_eq!(
+            take_anchored_lines(s, "something")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nANCHOR:    test2\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nANCHOR_END:test2\nipsum";
         assert_eq!(
-            take_anchored_lines(s, "test2").collect::<Vec<_>>().join("\n"),
+            take_anchored_lines(s, "test2")
+                .collect::<Vec<_>>()
+                .join("\n"),
             "ipsum\ndolor\nsit\namet\nlorem"
         );
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "dolor\nsit\namet");
-        assert_eq!(take_anchored_lines(s, "something").collect::<Vec<_>>().join("\n"), "");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "dolor\nsit\namet"
+        );
+        assert_eq!(
+            take_anchored_lines(s, "something")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ""
+        );
 
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR_END: test\ndolor\nANCHOR: test\nsit\nANCHOR_END: test\namet";
-        assert_eq!(take_anchored_lines(s, "test").collect::<Vec<_>>().join("\n"), "ipsum\nsit");
+        assert_eq!(
+            take_anchored_lines(s, "test")
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "ipsum\nsit"
+        );
     }
 
     #[test]
@@ -137,59 +220,47 @@ mod tests {
     fn take_rustdoc_lines_test() {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
         assert_eq!(
-           take_rustdoc_lines(s, 1..3)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           "# Lorem\nipsum\ndolor\n# sit\n# amet"
+            take_rustdoc_lines(s, 1..3)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "# Lorem\nipsum\ndolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_lines(s, 3..)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           "# Lorem\n# ipsum\n# dolor\nsit\namet"
+            take_rustdoc_lines(s, 3..)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "# Lorem\n# ipsum\n# dolor\nsit\namet"
         );
         assert_eq!(
-           take_rustdoc_lines(s, ..3)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           "Lorem\nipsum\ndolor\n# sit\n# amet"
+            take_rustdoc_lines(s, ..3)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "Lorem\nipsum\ndolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_lines(s, ..)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           s
+            take_rustdoc_lines(s, ..)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            s
         );
         // corner cases
         assert_eq!(
-           take_rustdoc_lines(s, 4..3)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
+            take_rustdoc_lines(s, 4..3)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
         );
         assert_eq!(
-           take_rustdoc_lines(s, ..100)
-               .map(|(line, show)| {
-                   format!("{}{line}", show.then_some("").unwrap_or("# "))
-               })
-               .collect::<Vec<_>>()
-               .join("\n"),
-           s
+            take_rustdoc_lines(s, ..100)
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
+                .collect::<Vec<_>>()
+                .join("\n"),
+            s
         );
     }
 
@@ -198,9 +269,7 @@ mod tests {
         let s = "Lorem\nipsum\ndolor\nsit\namet";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
@@ -209,9 +278,7 @@ mod tests {
         let s = "Lorem\nipsum\ndolor\nANCHOR_END: test\nsit\namet";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
@@ -220,18 +287,14 @@ mod tests {
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\ndolor\nsit\namet"
         );
         assert_eq!(
             take_rustdoc_anchored_lines(s, "something")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet"
@@ -240,18 +303,14 @@ mod tests {
         let s = "Lorem\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
             take_rustdoc_anchored_lines(s, "something")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet\n# lorem\n# ipsum"
@@ -260,18 +319,14 @@ mod tests {
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nipsum";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\nipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
             take_rustdoc_anchored_lines(s, "something")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet\n# lorem\n# ipsum"
@@ -280,27 +335,21 @@ mod tests {
         let s = "Lorem\nANCHOR:    test2\nipsum\nANCHOR: test\ndolor\nsit\namet\nANCHOR_END: test\nlorem\nANCHOR_END:test2\nipsum";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test2")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\nipsum\ndolor\nsit\namet\nlorem\n# ipsum"
         );
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\ndolor\nsit\namet\n# lorem\n# ipsum"
         );
         assert_eq!(
             take_rustdoc_anchored_lines(s, "something")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\n# ipsum\n# dolor\n# sit\n# amet\n# lorem\n# ipsum"
@@ -309,9 +358,7 @@ mod tests {
         let s = "Lorem\nANCHOR: test\nipsum\nANCHOR_END: test\ndolor\nANCHOR: test\nsit\nANCHOR_END: test\namet";
         assert_eq!(
             take_rustdoc_anchored_lines(s, "test")
-                .map(|(line, show)| {
-                    format!("{}{line}", show.then_some("").unwrap_or("# "))
-                })
+                .map(|(line, show)| { format!("{}{line}", show.then_some("").unwrap_or("# ")) })
                 .collect::<Vec<_>>()
                 .join("\n"),
             "# Lorem\nipsum\n# dolor\nsit\n# amet"
