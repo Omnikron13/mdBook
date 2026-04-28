@@ -423,8 +423,8 @@ impl<'a> Link<'a> {
             LinkType::Playground(ref pat, ref attrs) => {
                 let target = base.join(pat);
 
-                let mut contents = fs::read_to_string(&target).
-                    with_context(|| {
+                let mut contents = fs::read_to_string(&target)
+                    .with_context(|| {
                         format!(
                             "Could not read file for link {} ({})",
                             self.link_text,
